@@ -22,6 +22,7 @@ variable {U : Type*} [DecidableEq U] [Fintype U]
 def Finset.indicator' (S : Finset U) : U → ℝ :=
   fun i => if i ∈ S then 1 else 0
 
+omit [Fintype U] in
 @[simp]
 lemma Finset.indicator'_apply (S : Finset U) (i : U) :
     S.indicator' i = if i ∈ S then (1 : ℝ) else 0 := rfl
@@ -43,6 +44,7 @@ lemma clm_decompose (Λ : (U → ℝ) →L[ℝ] ℝ) (h : U → ℝ) :
         Finset.sum_congr rfl (fun i _ => key i)
   ext j; simp [Finset.sum_apply, Function.update]
 
+omit [Fintype U] in
 /-- Applying a CLinearMap to an indicator equals `additiveFunction`. -/
 lemma clm_indicator'_eq_additiveFunction (Λ : (U → ℝ) →L[ℝ] ℝ) (S : Finset U) :
     Λ S.indicator' = additiveFunction (fun i => Λ (Function.update 0 i 1)) S := by
@@ -60,7 +62,7 @@ lemma dual_cert_zero_case
     (hMbound : ∀ S : Finset U, |f S| ≤ distToAdditive f)
     (hM0 : distToAdditive f = 0) :
     Nonempty (DualCertificate f (distToAdditive f)) := by
-  refine' ⟨ ⟨ fun S => if S = ∅ then 1 else 0, _, _, _, _ ⟩ ⟩ <;> simp_all +decide [ Finset.sum_ite ];
+  refine' ⟨ ⟨ fun S => if S = ∅ then 1 else 0, _, _, _, _ ⟩ ⟩ <;> simp_all +decide;
   rw [ Finset.sum_eq_single ∅ ] <;> simp +contextual
 
 /-! ## M > 0 case: the Hahn–Banach argument -/
@@ -122,11 +124,11 @@ lemma zero_mem_convexHull_of_best_approx
     intro S hS
     have hΛ_neg : Λ (-S.indicator') < 0 := hΛ_gen_neg S hS
     have h_additiveFunction_a_neg : additiveFunction a S = -Λ (S.indicator') := by
-      rw [ clm_indicator'_eq_additiveFunction Λ S ] ; ring!;
+      rw [ clm_indicator'_eq_additiveFunction Λ S ] ; ring_nf!;
       unfold additiveFunction; simp +decide [ Finset.sum_neg_distrib ] ;
     rw [h_additiveFunction_a_neg]
     exact neg_neg_of_pos (by
-    rw [ show Λ ( -S.indicator' ) = -Λ S.indicator' by simp +decide [ neg_eq_iff_eq_neg ] ] at hΛ_neg ; linarith);
+    rw [ show Λ ( -S.indicator' ) = -Λ S.indicator' by simp +decide ] at hΛ_neg ; linarith);
   -- For ε > 0 sufficiently small, ∀ S : Finset U, |f S - additiveFunction (fun i => ε * a i) S| < M.
   obtain ⟨ε, hε_pos, hε⟩ : ∃ ε > 0, ∀ S : Finset U, |f S - additiveFunction (fun i => ε * a i) S| < M := by
     -- For inactive S, |f S| < M, so |f S - ε · additiveFunction a S| < M for ε small by continuity.
@@ -142,22 +144,23 @@ lemma zero_mem_convexHull_of_best_approx
       intro S hS
       by_cases hS_pos : f S = M;
       · simp_all +decide [ additiveFunction ];
-        simp_all +decide [ ← Finset.mul_sum _ _ _, ← Finset.sum_mul ];
+        simp_all +decide [ ← Finset.mul_sum _ _ _ ];
         exact ⟨ M / ( -∑ i ∈ S, Λ ( Function.update 0 i 1 ) ), div_pos hM_pos ( neg_pos.mpr ( h_additiveFunction_a_pos S hS_pos ) ), fun ε' hε'₁ hε'₂ => abs_lt.mpr ⟨ by nlinarith [ mul_div_cancel₀ M ( ne_of_gt ( neg_pos.mpr ( h_additiveFunction_a_pos S hS_pos ) ) ), h_additiveFunction_a_pos S hS_pos ], by nlinarith [ mul_div_cancel₀ M ( ne_of_gt ( neg_pos.mpr ( h_additiveFunction_a_pos S hS_pos ) ) ), h_additiveFunction_a_pos S hS_pos ] ⟩ ⟩;
       · have hS_neg : f S = -M := by
           exact Or.resolve_left ( eq_or_eq_neg_of_abs_eq hS ) hS_pos;
         simp_all +decide [ additiveFunction ];
-        simp_all +decide [ ← Finset.mul_sum _ _ _, ← Finset.sum_mul ];
+        simp_all +decide [ ← Finset.mul_sum _ _ _ ];
         exact ⟨ M / ( ∑ i ∈ S, Λ ( Function.update 0 i 1 ) ), div_pos hM_pos ( h_additiveFunction_a_neg S hS_neg ), fun ε' hε'₁ hε'₂ => abs_lt.mpr ⟨ by nlinarith [ mul_div_cancel₀ M ( ne_of_gt ( h_additiveFunction_a_neg S hS_neg ) ) ], by nlinarith [ mul_div_cancel₀ M ( ne_of_gt ( h_additiveFunction_a_neg S hS_neg ) ) ] ⟩ ⟩;
     choose! ε hε_pos hε using fun S => if h : |f S| < M then h_inactive S h else h_active S ( le_antisymm ( hMbound S ) ( not_lt.mp h ) );
     -- Choose ε as the minimum of the ε_S's.
     obtain ⟨ε_min, hε_min_pos, hε_min⟩ : ∃ ε_min > 0, ∀ S : Finset U, ε_min ≤ ε S := by
       by_cases h_empty : Finset.Nonempty (Finset.univ : Finset (Finset U));
       · exact ⟨ Finset.min' ( Finset.image ε Finset.univ ) ⟨ _, Finset.mem_image_of_mem ε ( Finset.mem_univ h_empty.choose ) ⟩, by have := Finset.min'_mem ( Finset.image ε Finset.univ ) ⟨ _, Finset.mem_image_of_mem ε ( Finset.mem_univ h_empty.choose ) ⟩ ; aesop, fun S => Finset.min'_le _ _ ( Finset.mem_image_of_mem ε ( Finset.mem_univ S ) ) ⟩;
-      · simp_all +decide [ Finset.not_nonempty_iff_eq_empty ];
+      · simp_all +decide;
     exact ⟨ ε_min / 2, half_pos hε_min_pos, fun S => hε S ( ε_min / 2 ) ⟨ half_pos hε_min_pos, by linarith [ hε_min S ] ⟩ ⟩;
   exact absurd ( hbest ( fun i => ε * a i ) ) ( by push_neg; exact hε )
 
+omit [Fintype U] in
 /-- `indicator'` is injective: different finsets give different indicator functions. -/
 lemma indicator'_injective : Function.Injective (Finset.indicator' : Finset U → (U → ℝ)) := by
   intro S T hST
@@ -201,7 +204,7 @@ lemma dual_cert_from_convexHull
         rw [ ← Finset.sum_subset ( show Finset.image ( fun S => S.indicator' ) ( Finset.filter ( fun S => f S = M ) Finset.univ |> Finset.filter ( fun S => S.indicator' ∈ c ) ) ∪ Finset.image ( fun S => -S.indicator' ) ( Finset.filter ( fun S => f S = -M ) Finset.univ |> Finset.filter ( fun S => -S.indicator' ∈ c ) ) ⊆ c from ?_ ) ];
         · rw [ Finset.sum_union ];
           · rw [ Finset.sum_image, Finset.sum_image ] <;> simp +contextual [ indicator'_injective.eq_iff ];
-          · simp +contextual [ Finset.disjoint_left, Set.disjoint_left ];
+          · simp +contextual [ Finset.disjoint_left ];
             rintro _ S₁ hS₁ hS₁' rfl S₂ hS₂ hS₂'; simp_all +decide [ funext_iff, Finset.indicator' ] ;
             contrapose! hM_pos;
             have h_empty : S₁ = ∅ := by
@@ -214,7 +217,7 @@ lemma dual_cert_from_convexHull
       · have h_sum_eq : ∑ v ∈ c, w v • v = ∑ S ∈ Finset.filter (fun S => f S = M) Finset.univ, ∑ v ∈ c, (if v = S.indicator' then w v • v else 0) + ∑ S ∈ Finset.filter (fun S => f S = -M) Finset.univ, ∑ v ∈ c, (if v = -S.indicator' then w v • v else 0) := by
           have h_sum_eq : ∀ v ∈ c, v = ∑ S ∈ Finset.filter (fun S => f S = M) Finset.univ, (if v = S.indicator' then v else 0) + ∑ S ∈ Finset.filter (fun S => f S = -M) Finset.univ, (if v = -S.indicator' then v else 0) := by
             intro v hv; specialize hw_pos v hv; unfold activeGenerators at hw_pos; simp_all +decide [ Finset.sum_ite ] ;
-            rcases hw_pos with ( ⟨ S, hS₁, rfl ⟩ | ⟨ S, hS₁, rfl ⟩ ) <;> simp +decide [ Finset.sum_filter, hS₁ ];
+            rcases hw_pos with ( ⟨ S, hS₁, rfl ⟩ | ⟨ S, hS₁, rfl ⟩ ) <;> simp +decide [ Finset.sum_filter ];
             · rw [ Finset.sum_eq_single S, Finset.sum_eq_zero ] <;> simp +contextual [ hS₁, indicator'_injective.eq_iff ];
               · intro T hT₁ hT₂; have := congr_fun hT₂; simp_all +decide [ Finset.indicator' ] ;
                 ext a; specialize this a; split_ifs at this <;> norm_num at this;
@@ -223,7 +226,7 @@ lemma dual_cert_from_convexHull
             · rw [ Finset.sum_eq_zero, Finset.sum_eq_single S ] <;> simp +contextual [ hS₁, indicator'_injective.eq_iff ];
               · aesop;
               · intro T hT₁ hT₂; have := congr_fun hT₂; simp_all +decide [ Finset.indicator' ] ;
-                ext a; specialize this a; split_ifs at this <;> simp_all +decide ;
+                ext a; specialize this a; split_ifs at this <;> simp_all +decide [ Finset.indicator' ];
                 norm_num at this;
           have h_sum_eq : ∑ v ∈ c, w v • v = ∑ v ∈ c, w v • (∑ S ∈ Finset.filter (fun S => f S = M) Finset.univ, (if v = S.indicator' then v else 0) + ∑ S ∈ Finset.filter (fun S => f S = -M) Finset.univ, (if v = -S.indicator' then v else 0)) := by
             exact Finset.sum_congr rfl fun v hv => h_sum_eq v hv ▸ rfl;
@@ -236,7 +239,25 @@ lemma dual_cert_from_convexHull
   · have h_abs : ∀ S : Finset U, |lam_pos S - lam_neg S| = lam_pos S + lam_neg S := by
       grind;
     simp_all +decide [ Finset.sum_add_distrib ];
-  · intro i; replace hw_neg_def := congr_fun hw_neg_def.2.2 i; simp_all +decide [ Finset.sum_ite, Finset.filter_mem_eq_inter, Finset.filter_not ] ;
+  · intro i
+    replace hw_neg_def := congr_fun hw_neg_def.2.2 i
+    have hdiff :
+        ((∑ x : Finset U, if i ∈ x then lam_pos x else 0) -
+          ∑ x : Finset U, if i ∈ x then lam_neg x else 0) = 0 := by
+      simpa [Finset.indicator'] using hw_neg_def
+    have hsum : (∑ x : Finset U, if i ∈ x then lam_pos x - lam_neg x else 0) = 0 := by
+      calc
+        (∑ x : Finset U, if i ∈ x then lam_pos x - lam_neg x else 0)
+            = ∑ x : Finset U,
+                ((if i ∈ x then lam_pos x else 0) - (if i ∈ x then lam_neg x else 0)) := by
+              apply Finset.sum_congr rfl
+              intro x _
+              by_cases hx : i ∈ x <;> simp [hx]
+        _ = (∑ x : Finset U, if i ∈ x then lam_pos x else 0) -
+              ∑ x : Finset U, if i ∈ x then lam_neg x else 0 := by
+              rw [Finset.sum_sub_distrib]
+        _ = 0 := hdiff
+    simpa [Finset.sum_filter, sub_eq_add_neg] using hsum
   · grind +revert;
   · grind +qlia
 

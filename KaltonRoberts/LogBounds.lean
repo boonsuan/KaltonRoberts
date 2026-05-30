@@ -121,7 +121,7 @@ theorem log_lower_921_4375 : (-7791009/5000000 : ℝ) ≤ Real.log (921/4375) :=
     rw [ Real.exp_eq_exp_ℝ ];
     rw [ NormedSpace.exp_eq_tsum_div ];
     refine' le_trans _ ( Summable.sum_le_tsum ( Finset.range 20 ) ( fun _ _ => by positivity ) ( by exact Real.summable_pow_div_factorial _ ) ) ; norm_num;
-  exact Real.log_le_log ( by positivity ) ( by rw [ show ( Real.exp ( -7791009 / 5000000 ) : ℝ ) = ( Real.exp ( 7791009 / 5000000 ) ) ⁻¹ by rw [ ← Real.exp_neg ] ; ring ] ; rw [ inv_eq_one_div, div_le_div_iff₀ ] <;> linarith )
+  exact Real.log_le_log ( by positivity ) ( by rw [ show ( Real.exp ( -7791009 / 5000000 ) : ℝ ) = ( Real.exp ( 7791009 / 5000000 ) ) ⁻¹ by rw [ ← Real.exp_neg ] ; ring_nf ] ; rw [ inv_eq_one_div, div_le_div_iff₀ ] <;> linarith )
 
 theorem log_upper_2_7 : Real.log (2/7) ≤ (-12527629/10000000 : ℝ) := by
   have h : (12527629 / 10000000 : ℝ) ≤ Real.log (7 / 2) := by
@@ -205,7 +205,7 @@ theorem log_lower_921_1250 : (-763597/2500000 : ℝ) ≤ Real.log (921/1250) := 
     rw [ ← Real.exp_nat_mul ] at * ; norm_num at * ; linarith;
   -- We'll use the exponential property to simplify the expression. Note that $(e^{1/2500000})^{763597} = e^{763597/2500000}$.
   suffices h_exp : Real.exp (763597 / 2500000) ≥ 1250 / 921 by
-    exact h_exp.trans_eq ( by rw [ ← Real.exp_nat_mul ] ; ring );
+    exact h_exp.trans_eq ( by rw [ ← Real.exp_nat_mul ] ; ring_nf );
   rw [ Real.exp_eq_exp_ℝ ];
   rw [ NormedSpace.exp_eq_tsum_div ];
   exact le_trans ( by norm_num ) ( Summable.sum_le_tsum ( Finset.range 10 ) ( fun _ _ => by positivity ) ( by exact Real.summable_pow_div_factorial _ ) )

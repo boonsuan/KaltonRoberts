@@ -28,6 +28,7 @@ variable {U : Type*} [DecidableEq U] [Fintype U]
 
 /-! ## Auxiliary: M is nonneg, deficit helpers -/
 
+omit [Fintype U] in
 lemma M_nonneg_of_bound (f : Finset U → ℝ) (hf : IsApproxAdditive f 1) (M : ℝ)
     (hM : ∀ S : Finset U, |f S| ≤ M) : 0 ≤ M := by
   have := hM ∅; simp [hf.1] at this; exact this
@@ -52,12 +53,14 @@ variable (C : WeightedCollection U)
 def floorCount (N : ℕ) (j : C.J) : ℕ :=
   ⌊(N : ℝ) * C.weight j / C.totalWeight⌋₊
 
+omit [Fintype U] in
 /-- Each floor count is at most the continuous fractional value. -/
 lemma floorCount_le_frac (N : ℕ) (j : C.J) :
     (C.floorCount N j : ℝ) ≤ (N : ℝ) * C.weight j / C.totalWeight :=
   Nat.floor_le (div_nonneg (mul_nonneg (Nat.cast_nonneg N) (C.weight_nonneg j))
     (le_of_lt C.totalWeight_pos))
 
+omit [Fintype U] in
 /-
 Sum of floor counts is at most N.
 -/
@@ -74,6 +77,7 @@ lemma floorCount_sum_le (N : ℕ) :
 /-- The number of empty-set copies to pad up to N. -/
 def emptyCount (N : ℕ) : ℕ := N - ∑ j : C.J, C.floorCount N j
 
+omit [Fintype U] in
 /-
 Empty count is at most card J.
 -/
@@ -81,7 +85,7 @@ lemma emptyCount_le_card (N : ℕ) :
     C.emptyCount N ≤ Fintype.card C.J := by
   -- By definition, we have $\ �sum�_{j \in J} \lfloor N \cdot w_j / W \rfloor \leq \sum_{j \in J} (N \cdot w_j / W) = N$.
   have h_sum_floor_le_N : ∑ j : C.J, C.floorCount N j ≤ N := by
-    exact?;
+    exact C.floorCount_sum_le N
   unfold WeightedCollection.emptyCount;
   -- Since $N \cdot w_j/W - \lfloor N \cdot w_j/W \rfloor < 1$, $\sum_j (N \cdot w_j/W - \lfloor N \cdot w_j/W \rfloor) < \sum_j 1 = \text{card } J$.
   have h_sum_lt_card : ∑ j : C.J, ((N : ℝ) * C.weight j / C.totalWeight - (C.floorCount N j : ℝ)) < Fintype.card C.J := by
@@ -91,8 +95,8 @@ lemma emptyCount_le_card (N : ℕ) :
       exact absurd ( C.total_pos ) ( by simp +decide [ Finset.sum_eq_zero ] );
     · exact sub_lt_iff_lt_add'.mpr ( Nat.lt_floor_add_one _ );
   rw [ ← @Nat.cast_le ℝ ];
-  convert h_sum_lt_card.le using 1 ; rw [ Nat.cast_sub h_sum_floor_le_N ] ; simp +decide [ Finset.sum_div _ _ _ ] ; ring;
-  simp +decide [ ← Finset.mul_sum _ _ _, ← Finset.sum_mul, mul_assoc, C.total_pos.ne' ];
+  convert h_sum_lt_card.le using 1 ; rw [ Nat.cast_sub h_sum_floor_le_N ] ; simp +decide ; ring_nf;
+  simp +decide [ ← Finset.mul_sum _ _ _, ← Finset.sum_mul, mul_assoc ];
   simp +decide [ WeightedCollection.totalWeight, ne_of_gt C.total_pos ]
 
 /-- Approximate index type: sigma type for set copies plus empty copies. -/
@@ -127,6 +131,7 @@ lemma approx_count (N : ℕ) (i : U) :
   · ext x; cases x <;> simp +decide [ WeightedCollection.approxFam ] ;
     grind
 
+omit [Fintype U] in
 /-
 Frequency in the approximation is at most the weighted item frequency.
 -/
@@ -154,6 +159,7 @@ lemma approx_deficit_sum (N : ℕ) (f : Finset U → ℝ) (M : ℝ) :
   unfold WeightedCollection.approxFam;
   simp +decide [ Fintype.sum_sigma ]
 
+omit [Fintype U] in
 /-
 Average deficit of the approximation is at most D + card(J) · M / N.
 -/
@@ -185,6 +191,7 @@ end WeightedCollection
 
 /-! ## Epsilon one-sided recombination -/
 
+omit [Fintype U] in
 /-- **Lemma 3.2 (ε-version)** One-sided recombination with epsilon loss.
 Bridges arbitrary real-weighted collections to the finite uniform theorem. -/
 theorem one_sided_recombination_core_eps
@@ -246,6 +253,7 @@ private lemma IsApproxAdditive_neg (f : Finset U → ℝ) (hf : IsApproxAdditive
     rw [show -f A + -f B - -f (A ∪ B) = -(f A + f B - f (A ∪ B)) by ring, abs_neg]
     exact hf.2 A B hAB
 
+omit [Fintype U] in
 /-- **Lemma 3.3 (ε-version)** Two-sided recombination with epsilon loss.
 Applies epsilon one-sided to deficit side and surplus side, then averages. -/
 theorem two_sided_recombination_core_eps

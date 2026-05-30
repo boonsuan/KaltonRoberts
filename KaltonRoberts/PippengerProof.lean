@@ -16,7 +16,7 @@ set_option maxHeartbeats 800000
 /-
 Base case: with no constraint, we get all permutations.
 -/
-theorem card_perm_constrained_zero (n t : ℕ) (ht : t ≤ n) :
+theorem card_perm_constrained_zero (n t : ℕ) (_ht : t ≤ n) :
     Fintype.card {σ : Equiv.Perm (Fin n) //
       ∀ (i : Fin n), i.val < 0 → (σ i).val < t} =
     n.factorial := by
@@ -74,11 +74,11 @@ theorem card_perm_constrained_step (n s t : ℕ) (hs : s < t) (ht : t ≤ n) :
         · aesop;
         · intro σ hσ
           use σ * Equiv.swap i ⟨s, by linarith [Fin.is_lt i]⟩
-          simp [hσ];
+          simp;
           grind;
     simp_all +decide [ mul_comm ];
-    rw [ Finset.sum_congr rfl fun x hx => h_card_perm_aux x <| Finset.mem_filter.mp hx |>.2 ] ; norm_num [ Finset.card_univ ];
-    rw [ show ( Finset.univ.filter fun x : Fin n => s ≤ ( x : ℕ ) ) = Finset.Ici ⟨ s, by linarith ⟩ by ext; aesop ] ; simp +decide [ Finset.card_univ ];
+    rw [ Finset.sum_congr rfl fun x hx => h_card_perm_aux x <| Finset.mem_filter.mp hx |>.2 ] ; norm_num;
+    rw [ show ( Finset.univ.filter fun x : Fin n => s ≤ ( x : ℕ ) ) = Finset.Ici ⟨ s, by linarith ⟩ by ext; aesop ] ; simp +decide;
   exact h_card_perm.symm
 
 /-- The number of permutations of `Fin n` that map the first `s` elements
@@ -109,18 +109,18 @@ theorem card_perm_constrained (n s t : ℕ) (hs : s ≤ t) (ht : t ≤ n) :
 /-
 `C(n,k) ≤ (e*n/k)^k` for `0 < k ≤ n`.
 -/
-theorem choose_le_exp_pow (n k : ℕ) (hk : 0 < k) (hkn : k ≤ n) :
+theorem choose_le_exp_pow (n k : ℕ) (hk : 0 < k) (_hkn : k ≤ n) :
     (n.choose k : ℝ) ≤ (Real.exp 1 * ↑n / ↑k) ^ k := by
   -- We'll use the fact that $C(n,k) \leq \frac{n^k}{k!}$.
   have h_choose_le : (Nat.choose n k : ℝ) ≤ (n ^ k) / (Nat.factorial k) := by
-    exact?;
+    exact Nat.choose_le_pow_div k n
   refine le_trans h_choose_le ?_;
   -- We'll use the fact that $k! \geq (k/e)^k$.
   have h_factorial_ge : (Nat.factorial k : ℝ) ≥ (k / Real.exp 1) ^ k := by
     field_simp;
     rw [ div_pow, div_le_iff₀ ] <;> first | positivity | have := Real.exp_one_lt_d9.le ; norm_num at *;
     rw [ ← div_le_iff₀' ( by positivity ) ] ; rw [ Real.exp_eq_exp_ℝ ] ; norm_num [ NormedSpace.exp_eq_tsum_div ] ; exact Summable.le_tsum ( show Summable _ from Real.summable_pow_div_factorial _ ) k ( fun _ _ => by positivity ) ;
-  convert div_le_div_of_nonneg_left _ _ h_factorial_ge using 1 <;> ring <;> norm_num [ hk.ne', Real.exp_ne_zero ];
+  convert div_le_div_of_nonneg_left _ _ h_factorial_ge using 1 <;> ring_nf <;> norm_num [ hk.ne', Real.exp_ne_zero ];
   · ring;
   · positivity
 
@@ -176,7 +176,7 @@ theorem choose_ge_exp_h_entropy_div (n k : ℕ) (hk : 0 < k) (hkn : k < n) :
       have h_ratio : (n.choose (j + 1) : ℝ) * (k / n : ℝ) ^ (j + 1) * ((n - k) / n : ℝ) ^ (n - (j + 1)) = (n.choose j : ℝ) * (k / n : ℝ) ^ j * ((n - k) / n : ℝ) ^ (n - j) * ((n - j) * k) / ((j + 1) * (n - k)) := by
         rw [ Nat.cast_choose, Nat.cast_choose ] <;> try linarith [ Finset.mem_Ico.mp hj ];
         field_simp;
-        rw [ eq_div_iff ( sub_ne_zero_of_ne <| by norm_cast; linarith ) ] ; rw [ show n - j = n - ( j + 1 ) + 1 by rw [ tsub_add_eq_add_tsub ( by linarith [ Finset.mem_Ico.mp hj ] ) ] ; simp +decide ] ; push_cast [ Nat.factorial_succ ] ; ring;
+        rw [ eq_div_iff ( sub_ne_zero_of_ne <| by norm_cast; linarith ) ] ; rw [ show n - j = n - ( j + 1 ) + 1 by rw [ tsub_add_eq_add_tsub ( by linarith [ Finset.mem_Ico.mp hj ] ) ] ; simp +decide ] ; push_cast [ Nat.factorial_succ ] ; ring_nf;
         rw [ Nat.cast_sub ( by linarith [ Finset.mem_Ico.mp hj ] ) ] ; push_cast ; ring;
       rw [ h_ratio, div_le_iff₀ ];
       · exact mul_le_mul_of_nonneg_left ( by nlinarith only [ show ( j : ℝ ) ≥ k by exact_mod_cast Finset.mem_Ico.mp hj |>.1, show ( j : ℝ ) < n by exact_mod_cast Finset.mem_Ico.mp hj |>.2 ] ) ( by exact mul_nonneg ( mul_nonneg ( Nat.cast_nonneg _ ) ( pow_nonneg ( by positivity ) _ ) ) ( pow_nonneg ( div_nonneg ( sub_nonneg.mpr ( Nat.cast_le.mpr hkn.le ) ) ( Nat.cast_nonneg _ ) ) _ ) );
@@ -196,9 +196,9 @@ theorem choose_ge_exp_h_entropy_div (n k : ℕ) (hk : 0 < k) (hkn : k < n) :
     rwa [ inv_eq_one_div, div_le_iff₀' ( by positivity ) ];
   -- Therefore, $C(n,k) \geq \frac{\exp(h(n,k))}{n+1}$ by simplifying the expression.
   have h_simplified : (n.choose k : ℝ) * (Real.exp (h_entropy n k))⁻¹ ≥ 1 / (n + 1) := by
-    convert max_term using 1 ; norm_num [ h_entropy ] ; ring;
-    norm_num [ Real.exp_add, Real.exp_sub, Real.exp_neg, Real.exp_nat_mul, Real.exp_log ( show 0 < ( n : ℝ ) by norm_cast; linarith ), Real.exp_log ( show 0 < ( k : ℝ ) by norm_cast ), Real.exp_log ( show 0 < ( n - k : ℝ ) by exact sub_pos.mpr ( Nat.cast_lt.mpr hkn ) ) ] ; ring;
-    rw [ show ( n : ℕ ) = k + ( n - k ) by rw [ Nat.add_sub_cancel' hkn.le ] ] ; norm_num [ pow_add, mul_assoc, mul_comm, mul_left_comm, ne_of_gt ( show 0 < ( n : ℝ ) by norm_cast; linarith ), ne_of_gt ( show 0 < ( n - k : ℝ ) by exact sub_pos.mpr ( Nat.cast_lt.mpr hkn ) ) ] ; ring;
+    convert max_term using 1 ; norm_num [ h_entropy ] ; ring_nf;
+    norm_num [ Real.exp_add, Real.exp_sub, Real.exp_neg, Real.exp_nat_mul, Real.exp_log ( show 0 < ( n : ℝ ) by norm_cast; linarith ), Real.exp_log ( show 0 < ( k : ℝ ) by norm_cast ), Real.exp_log ( show 0 < ( n - k : ℝ ) by exact sub_pos.mpr ( Nat.cast_lt.mpr hkn ) ) ] ; ring_nf;
+    rw [ show ( n : ℕ ) = k + ( n - k ) by rw [ Nat.add_sub_cancel' hkn.le ] ] ; norm_num [ pow_add, mul_assoc, mul_comm, mul_left_comm, ne_of_gt ( show 0 < ( n : ℝ ) by norm_cast; linarith ), ne_of_gt ( show 0 < ( n - k : ℝ ) by exact sub_pos.mpr ( Nat.cast_lt.mpr hkn ) ) ] ; ring_nf;
     simp +decide [ mul_left_comm ( ( n - k : ℕ ) ^ k : ℝ ), mul_assoc, ne_of_gt ( show 0 < ( n - k : ℕ ) from Nat.sub_pos_of_lt hkn ) ];
   field_simp at h_simplified;
   rwa [ div_le_iff₀' <| by positivity ]
@@ -295,7 +295,7 @@ theorem exp_decay_beats_poly (η : ℝ) (hη : 0 < η) :
   -- We'll use the fact that $N^2 e^{-\eta N}$ tends to $0$ as $N$ tends to infinity.
   have h_lim : Filter.Tendsto (fun N : ℕ => (N : ℝ) ^ 2 * Real.exp (-η * N)) Filter.atTop (nhds 0) := by
     have := Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 2;
-    convert this.comp ( tendsto_natCast_atTop_atTop.const_mul_atTop hη ) |> ( ·.mul_const ( η ^ 2 ) ⁻¹ ) using 2 <;> norm_num ; ring;
+    convert this.comp ( tendsto_natCast_atTop_atTop.const_mul_atTop hη ) |> ( ·.mul_const ( η ^ 2 ) ⁻¹ ) using 2 <;> norm_num ; ring_nf;
     norm_num [ mul_right_comm, hη.ne' ];
   exact h_lim.eventually ( gt_mem_nhds <| by norm_num )
 
@@ -307,7 +307,7 @@ theorem exp_decay_beats_poly_const (C η : ℝ) (hη : 0 < η) :
         Filter.atTop (nhds 0) := by
     have := Real.tendsto_pow_mul_exp_neg_atTop_nhds_zero 2
     convert this.comp (tendsto_natCast_atTop_atTop.const_mul_atTop hη)
-      |> (·.mul_const (η ^ 2)⁻¹) using 2 <;> norm_num ; ring
+      |> (·.mul_const (η ^ 2)⁻¹) using 2 <;> norm_num ; ring_nf
     norm_num [mul_right_comm, hη.ne']
   have h_lim :
       Filter.Tendsto (fun N : ℕ => C * ((N : ℝ) ^ 2 * Real.exp (-η * N)))
@@ -428,7 +428,6 @@ theorem pippenger_small_term_raw
         set A := Real.exp 1 * (N : ℝ) / (m : ℝ)
         set B := Real.exp 1 * (L : ℝ) / (m : ℝ)
         set C := (((c * m : ℕ) : ℝ) / ((r * N : ℕ) : ℝ)) ^ r
-        change (A ^ m * B ^ m) * C ^ m = (A * B * C) ^ m
         rw [← mul_pow, ← mul_pow]
 
 theorem pippenger_term_le_entropy_bound
@@ -652,7 +651,7 @@ theorem exists_perm_set_to_initial {n : ℕ} (A : Finset (Fin n)) :
     intro x;
     by_cases hx : x.val < B.card;
     · use f.symm ⟨x.val, hx⟩;
-      simp +decide [ hx ];
+      simp +decide;
     · use g.symm ⟨x.val - B.card, by
         exact tsub_lt_tsub_iff_right ( le_of_not_gt hx ) |>.2 ( Fin.is_lt x )⟩
       generalize_proofs at *;
@@ -713,7 +712,7 @@ theorem first_moment_principle {n : ℕ} (hn : 0 < n.factorial)
 If the sum of "bad fractions" over a given set of (A,B) pairs is < 1,
 then there exists a permutation not satisfying any of them.
 -/
-theorem good_perm_of_sum_lt (M : ℕ) (hM : 0 < M)
+theorem good_perm_of_sum_lt (M : ℕ) (_hM : 0 < M)
     (pairs : Finset (Finset (Fin M) × Finset (Fin M)))
     (hsum : (∑ p ∈ pairs,
       (p.2.card.descFactorial p.1.card * (M - p.1.card).factorial : ℝ) / M.factorial) < 1)
@@ -773,7 +772,7 @@ theorem good_perm_indexed_of_sum_lt {ι : Type*} [DecidableEq ι]
   · exact (hpairs i hi).2
 
 theorem desc_factorial_ratio_eq_choose_ratio
-    (M a k : ℕ) (hka : k ≤ a) (hkM : k ≤ M) :
+    (M a k : ℕ) (_hka : k ≤ a) (hkM : k ≤ M) :
     ((a.descFactorial k * (M - k).factorial : ℝ) / M.factorial) =
       (a.choose k : ℝ) / (M.choose k : ℝ) := by
   have hdescA : (a.descFactorial k : ℝ) = (k.factorial : ℝ) * (a.choose k : ℝ) := by
@@ -797,7 +796,7 @@ theorem desc_factorial_ratio_eq_choose_ratio
 
 /-- If the expected number of bad sets is < 1, a good matching exists. -/
 theorem good_matching_exists_of_ratio_sum_lt_one
-    (N L r c A : ℕ) (hN : 0 < N) (hL : 0 < L) (hr : 0 < r) (hc : r < c)
+    (N L r c A : ℕ) (_hN : 0 < N) (hL : 0 < L) (hr : 0 < r) (hc : r < c)
     (hNL : r * N = c * L) (hA : A ≤ L)
     (hsum : (∑ m ∈ Finset.Icc 1 A,
       (N.choose m : ℝ) * ↑(L.choose m) *
@@ -852,7 +851,6 @@ theorem good_matching_exists_of_ratio_sum_lt_one
     refine Finset.sum_congr rfl ?_
     intro m hm
     rw [Finset.sum_product]
-    simp only [Sigma.snd, Prod.fst, Prod.snd]
     calc
       (∑ x ∈ (Finset.univ : Finset (Fin N)).powersetCard m,
         ∑ y ∈ (Finset.univ : Finset (Fin L)).powersetCard m,
@@ -869,12 +867,11 @@ theorem good_matching_exists_of_ratio_sum_lt_one
           refine Finset.sum_congr rfl ?_
           intro T hT
           have hTcard : T.card = m := (Finset.mem_powersetCard.mp hT).2
-          simp [hleft_card, hright_card, hScard, hTcard, M, Nat.mul_comm,
-            mul_assoc, mul_comm, mul_left_comm]
+          simp [hleft_card, hright_card, hScard, hTcard, M, mul_comm]
       _ = (N.choose m : ℝ) * (L.choose m : ℝ) *
             (((c * m).descFactorial (r * m) * (r * N - r * m).factorial : ℝ) /
               (r * N).factorial) := by
-          simp [Finset.card_powersetCard, mul_assoc, mul_comm, mul_left_comm]
+          simp [Finset.card_powersetCard, mul_assoc, mul_comm]
   have hdesc_eq_choose :
       (∑ m ∈ Finset.Icc 1 A,
         (N.choose m : ℝ) * (L.choose m : ℝ) *

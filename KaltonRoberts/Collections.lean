@@ -47,6 +47,7 @@ attribute [instance] WeightedCollection.finJ WeightedCollection.decJ
 noncomputable def WeightedCollection.totalWeight (C : WeightedCollection U) : ℝ :=
   ∑ j : C.J, C.weight j
 
+omit [Fintype U] in
 lemma WeightedCollection.totalWeight_pos (C : WeightedCollection U) :
     0 < C.totalWeight := C.total_pos
 
@@ -64,6 +65,7 @@ noncomputable def WeightedCollection.avgSurplus
     (C : WeightedCollection U) (f : Finset U → ℝ) (M : ℝ) : ℝ :=
   (∑ j : C.J, C.weight j * surplus f M (C.sets j)) / C.totalWeight
 
+omit [Fintype U] in
 /-- Item frequency is nonneg. -/
 lemma WeightedCollection.itemFreq_nonneg (C : WeightedCollection U) (i : U) :
     0 ≤ C.itemFreq i := by
@@ -71,6 +73,7 @@ lemma WeightedCollection.itemFreq_nonneg (C : WeightedCollection U) (i : U) :
   · exact Finset.sum_nonneg fun j _ => mul_nonneg (C.weight_nonneg j) (by split_ifs <;> norm_num)
   · exact le_of_lt C.total_pos
 
+omit [Fintype U] in
 /-- Item frequency is at most 1. -/
 lemma WeightedCollection.itemFreq_le_one (C : WeightedCollection U) (i : U) :
     C.itemFreq i ≤ 1 := by
@@ -95,13 +98,13 @@ noncomputable def DualCertificate.negMass
 lemma DualCertificate.posMass_nonneg
     {f : Finset U → ℝ} {M : ℝ} (cert : DualCertificate f M) :
     0 ≤ cert.posMass :=
-  Finset.sum_nonneg fun S _ => le_max_right _ _
+  Finset.sum_nonneg fun _ _ => le_max_right _ _
 
 /-- Negative mass is nonneg. -/
 lemma DualCertificate.negMass_nonneg
     {f : Finset U → ℝ} {M : ℝ} (cert : DualCertificate f M) :
     0 ≤ cert.negMass :=
-  Finset.sum_nonneg fun S _ => le_max_right _ _
+  Finset.sum_nonneg fun _ _ => le_max_right _ _
 
 /-- `|x| = max(x, 0) + max(-x, 0)` -/
 private lemma abs_eq_max_add (x : ℝ) : |x| = max x 0 + max (-x) 0 := by
@@ -203,7 +206,7 @@ noncomputable def DualCertificate.posCollection
   J := Finset U
   sets := id
   weight := fun S => max (cert.lam S) 0
-  weight_nonneg := fun S => le_max_right _ _
+  weight_nonneg := fun _ => le_max_right _ _
   total_pos := hp
 
 /-- The negative weighted collection from a dual certificate. -/
@@ -214,7 +217,7 @@ noncomputable def DualCertificate.negCollection
   J := Finset U
   sets := id
   weight := fun S => max (-cert.lam S) 0
-  weight_nonneg := fun S => le_max_right _ _
+  weight_nonneg := fun _ => le_max_right _ _
   total_pos := hq
 
 /-- The total weight of the positive collection is `p`. -/
@@ -270,7 +273,7 @@ lemma DualCertificate.negCollection_avgSurplus_eq_zero
     intro S
     by_cases hS : cert.lam S < 0;
     · have := cert.neg_support S hS; aesop;
-    · simp +decide [ DualCertificate.negCollection, hS ];
+    · simp +decide [ DualCertificate.negCollection ];
       exact Or.inl ( le_of_not_gt hS );
   exact div_eq_zero_iff.mpr ( Or.inl <| Finset.sum_eq_zero fun S _ => h_negCollection_weights S )
 
@@ -283,7 +286,7 @@ lemma DualCertificate.negCollection_itemFreq_le
     (cert.negCollection hq).itemFreq i ≤ cert.posMass / cert.negMass := by
   convert div_le_div_of_nonneg_right ( cert.neg_item_sum_le_posMass i ) hq.le using 1;
   unfold WeightedCollection.itemFreq;
-  simp +decide [ Finset.sum_ite, Finset.filter_mem_eq_inter, Finset.filter_inter, * ];
+  simp +decide [ Finset.sum_ite, * ];
   rfl
 
 /-! ## Swapping lemma: ensure q ≤ 1/2 -/
@@ -336,9 +339,8 @@ noncomputable def DualCertificate.augPosCollection
   J := Finset U ⊕ Finset U
   sets := augPosSets
   weight := augPosWeight cert
-  weight_nonneg j := by cases j <;> simp [augPosWeight] <;> exact le_max_right _ _
+  weight_nonneg j := by cases j <;> simp [augPosWeight]
   total_pos := by
-    change 0 < ∑ j : Finset U ⊕ Finset U, augPosWeight cert j
     simp only [Fintype.sum_sum_type, augPosWeight]
     rw [show (∑ x : Finset U, max (cert.lam x) 0) + ∑ x : Finset U, max (-cert.lam x) 0
         = cert.posMass + cert.negMass from rfl]
@@ -352,9 +354,8 @@ noncomputable def DualCertificate.augNegCollection
   J := Finset U ⊕ Finset U
   sets := augNegSets
   weight := augNegWeight cert
-  weight_nonneg j := by cases j <;> simp [augNegWeight] <;> exact le_max_right _ _
+  weight_nonneg j := by cases j <;> simp [augNegWeight]
   total_pos := by
-    change 0 < ∑ j : Finset U ⊕ Finset U, augNegWeight cert j
     simp only [Fintype.sum_sum_type, augNegWeight]
     rw [show (∑ x : Finset U, max (-cert.lam x) 0) + ∑ x : Finset U, max (cert.lam x) 0
         = cert.negMass + cert.posMass from rfl]
@@ -389,7 +390,7 @@ lemma DualCertificate.augPosCollection_itemFreq
     congr!;
   · grind +splitIndPred;
   · convert congr_arg ( fun x : ℝ => x ) ( show ( ∑ j : Finset U, max ( cert.lam j ) 0 * ( if i ∈ j then 1 else 0 ) ) + ( ∑ j : Finset U, max ( -cert.lam j ) 0 * ( if i ∈ j ᶜ then 1 else 0 ) ) = cert.negMass from ?_ ) using 1;
-    · simp +decide [ DualCertificate.augPosCollection, Finset.sum_add_distrib ];
+    · simp +decide [ DualCertificate.augPosCollection ];
       simp +decide [ augPosSets, augPosWeight ];
     · convert congr_arg₂ ( · + · ) ( show ( ∑ j : Finset U, max ( cert.lam j ) 0 * ( if i ∈ j then 1 else 0 ) ) = ( ∑ j : Finset U, max ( -cert.lam j ) 0 * ( if i ∈ j then 1 else 0 ) ) from ?_ ) rfl using 1;
       · rw [ ← Finset.sum_add_distrib, Finset.sum_congr rfl fun x hx => by aesop ];
@@ -415,14 +416,14 @@ lemma DualCertificate.augNegCollection_itemFreq
     exact inferInstance;
     exact Finset.univ;
     exact Finset.univ;
-    constructor <;> intro h <;> simp_all +decide [ Finset.sum_add_distrib ];
+    constructor <;> intro h <;> simp_all +decide;
     congr! 1;
     exact Finset.sum_congr rfl fun x hx => by unfold augNegSets; aesop;
   unfold WeightedCollection.itemFreq DualCertificate.posMass; simp_all +decide [ Finset.sum_ite ] ;
   convert congr_arg ( fun x : ℝ => x / 1 ) h_split using 1;
   · congr! 1;
     convert DualCertificate.augNegCollection_totalWeight cert;
-  · have := cert.marginal_pos_eq_neg i; simp_all +decide [ Finset.sum_ite ] ;
+  · have := cert.marginal_pos_eq_neg i; simp_all +decide ;
     rw [ ← this, ← Finset.sum_filter_add_sum_filter_not Finset.univ ( fun S => i ∈ S ) ( fun S => max ( cert.lam S ) 0 ) ]
 
 /-
@@ -432,7 +433,7 @@ where u = f(U). Uses 1-additivity of f.
 lemma DualCertificate.augPosCollection_avgDeficit_le
     {f : Finset U → ℝ} {M : ℝ} (cert : DualCertificate f M)
     (hf : IsApproxAdditive f 1)
-    (hM : ∀ S : Finset U, |f S| ≤ M) :
+    (_hM : ∀ S : Finset U, |f S| ≤ M) :
     cert.augPosCollection.avgDeficit f M ≤ cert.negMass * (1 - f Finset.univ) := by
   convert ( show ( ∑ j : Finset U ⊕ Finset U, augPosWeight cert j * deficit f M ( augPosSets j ) ) / 1 ≤ ( ∑ S : Finset U, max ( -cert.lam S ) 0 * ( 1 - f Finset.univ ) ) from ?_ ) using 1;
   · unfold WeightedCollection.avgDeficit;
@@ -463,7 +464,7 @@ where u = f(U). Uses 1-additivity of f.
 lemma DualCertificate.augNegCollection_avgSurplus_le
     {f : Finset U → ℝ} {M : ℝ} (cert : DualCertificate f M)
     (hf : IsApproxAdditive f 1)
-    (hM : ∀ S : Finset U, |f S| ≤ M) :
+    (_hM : ∀ S : Finset U, |f S| ≤ M) :
     cert.augNegCollection.avgSurplus f M ≤ cert.posMass * (1 + f Finset.univ) := by
   have h_sum : (∑ j, cert.augNegCollection.weight j * (M + f (cert.augNegCollection.sets j))) ≤ cert.posMass * (1 + f Finset.univ) := by
     have h_sum : (∑ S ∈ Finset.univ, max (-cert.lam S) 0 * (M + f S)) + (∑ S ∈ Finset.univ, max (cert.lam S) 0 * (M + f Sᶜ)) ≤ cert.posMass * (1 + f Finset.univ) := by
@@ -471,14 +472,14 @@ lemma DualCertificate.augNegCollection_avgSurplus_le
         intro S
         by_cases hS : cert.lam S > 0;
         · have := hf.2 S Sᶜ ; simp_all +decide [ Finset.disjoint_iff_inter_eq_empty ];
-          linarith [ abs_le.mp this, abs_le.mp ( hM S ), abs_le.mp ( hM Sᶜ ), abs_le.mp ( hM Finset.univ ), cert.pos_support S hS ];
+          linarith [ abs_le.mp this, cert.pos_support S hS ];
         · simp +decide [ max_eq_right ( le_of_not_gt hS ) ];
       refine' le_trans ( add_le_add ( Finset.sum_nonpos fun S _ => _ ) ( Finset.sum_le_sum fun S _ => h_sum S ) ) _;
       · by_cases h : cert.lam S < 0 <;> simp_all +decide [ abs_le ];
         have := cert.neg_support S h; aesop;
       · simp +decide [ ← Finset.sum_mul _ _ _, DualCertificate.posMass ];
     convert h_sum using 1;
-    unfold DualCertificate.augNegCollection; simp +decide [ Finset.sum_add_distrib ] ;
+    unfold DualCertificate.augNegCollection; simp +decide ;
     rfl;
   convert div_le_div_of_nonneg_right h_sum ( show 0 ≤ cert.augNegCollection.totalWeight from _ ) using 1;
   · rw [ DualCertificate.augNegCollection_totalWeight, div_one ];
@@ -503,6 +504,7 @@ noncomputable def WeightedCollection.uniformOfFamily
   weight_nonneg := fun _ => zero_le_one
   total_pos := by simp; exact Nat.cast_pos.mpr hJ
 
+omit [Fintype U'] in
 /-- Total weight of a uniform collection equals the cardinality. -/
 lemma WeightedCollection.uniformOfFamily_totalWeight
     {J : Type u} [Fintype J] [DecidableEq J]
@@ -510,6 +512,7 @@ lemma WeightedCollection.uniformOfFamily_totalWeight
     (uniformOfFamily sets hJ).totalWeight = Fintype.card J := by
   simp [totalWeight, uniformOfFamily]
 
+omit [Fintype U'] in
 /-- Item frequency in a uniform collection equals
 `card {j | i ∈ sets j} / card J`. -/
 lemma WeightedCollection.uniformOfFamily_itemFreq

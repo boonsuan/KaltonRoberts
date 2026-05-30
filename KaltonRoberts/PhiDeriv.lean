@@ -13,20 +13,20 @@ set_option maxHeartbeats 6400000
 theorem hasDerivAt_binEntropy (x : ℝ) (hx : 0 < x) (hx1 : x < 1) :
     HasDerivAt (fun x => -x * Real.log x - (1 - x) * Real.log (1 - x))
       (Real.log (1 - x) - Real.log x) x := by
-  convert HasDerivAt.sub ( HasDerivAt.mul ( hasDerivAt_neg x ) ( Real.hasDerivAt_log hx.ne' ) ) ( HasDerivAt.mul ( hasDerivAt_id x |> HasDerivAt.const_sub 1 ) ( HasDerivAt.log ( hasDerivAt_id x |> HasDerivAt.const_sub 1 ) ( by linarith : ( 1 - x ) ≠ 0 ) ) ) using 1 ; ring;
+  convert HasDerivAt.sub ( HasDerivAt.mul ( hasDerivAt_neg x ) ( Real.hasDerivAt_log hx.ne' ) ) ( HasDerivAt.mul ( hasDerivAt_id x |> HasDerivAt.const_sub 1 ) ( HasDerivAt.log ( hasDerivAt_id x |> HasDerivAt.const_sub 1 ) ( by linarith : ( 1 - x ) ≠ 0 ) ) ) using 1 ; ring_nf;
   grind
 
 theorem hasDerivAt_h_entropy_second (θ x : ℝ) (hx : 0 < x) (hxθ : x < θ) :
     HasDerivAt (fun x => θ * Real.log θ - x * Real.log x - (θ - x) * Real.log (θ - x))
       (Real.log (θ - x) - Real.log x) x := by
-  convert HasDerivAt.sub ( HasDerivAt.sub ( hasDerivAt_const _ _ ) ( HasDerivAt.mul ( hasDerivAt_id x ) ( Real.hasDerivAt_log _ ) ) ) ( HasDerivAt.mul ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) ( HasDerivAt.log ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) _ ) ) using 1 <;> norm_num [ hx.ne', hxθ.ne' ] ; ring;
+  convert HasDerivAt.sub ( HasDerivAt.sub ( hasDerivAt_const _ _ ) ( HasDerivAt.mul ( hasDerivAt_id x ) ( Real.hasDerivAt_log _ ) ) ) ( HasDerivAt.mul ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) ( HasDerivAt.log ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) _ ) ) using 1 <;> norm_num [ hx.ne', hxθ.ne' ] ; ring_nf;
   · grind;
   · linarith
 
 theorem hasDerivAt_neg_entropy_scaled (r x : ℝ) (hx : 0 < x) (hx1 : x < 1) :
     HasDerivAt (fun x => r * x * Real.log x + r * (1 - x) * Real.log (1 - x))
       (r * (Real.log x - Real.log (1 - x))) x := by
-  convert HasDerivAt.add ( HasDerivAt.mul ( HasDerivAt.mul ( hasDerivAt_const _ _ ) ( hasDerivAt_id x ) ) ( Real.hasDerivAt_log hx.ne' ) ) ( HasDerivAt.mul ( HasDerivAt.mul ( hasDerivAt_const _ _ ) ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) ) ( HasDerivAt.log ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) ( by linarith : ( 1 - x ) ≠ 0 ) ) ) using 1 ; ring;
+  convert HasDerivAt.add ( HasDerivAt.mul ( HasDerivAt.mul ( hasDerivAt_const _ _ ) ( hasDerivAt_id x ) ) ( Real.hasDerivAt_log hx.ne' ) ) ( HasDerivAt.mul ( HasDerivAt.mul ( hasDerivAt_const _ _ ) ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) ) ( HasDerivAt.log ( hasDerivAt_id x |> HasDerivAt.const_sub _ ) ( by linarith : ( 1 - x ) ≠ 0 ) ) ) using 1 ; ring_nf;
   norm_num [ hx.ne', sub_ne_zero.mpr hx1.ne' ]
 
 /-! ## Second derivatives -/
@@ -60,11 +60,11 @@ theorem hasDerivAt_Phi (r θ x : ℝ) (hx : 0 < x) (hxθ : x < θ) (hx1 : x < 1)
     unfold h_entropy;
     field_simp;
     rw [ Real.log_div, Real.log_div, Real.log_div, Real.log_mul, Real.log_mul ] <;> try nlinarith;
-    · rw [ Real.log_div, Real.log_mul, Real.log_mul ] <;> ring <;> nlinarith;
+    · rw [ Real.log_div, Real.log_mul, Real.log_mul ] <;> ring_nf <;> nlinarith;
     · exact mul_ne_zero ( mul_ne_zero hr.ne' hy.ne' ) ( by linarith );
   have h_def2 : ∀ᶠ y in nhds x, -h_entropy r (r * y) = r * y * Real.log y + r * (1 - y) * Real.log (1 - y) := by
     filter_upwards [ Ioo_mem_nhds hx hx1 ] with y hy;
-    unfold h_entropy; ring;
+    unfold h_entropy; ring_nf;
     rw [ show r - r * y = r * ( 1 - y ) by ring, Real.log_mul ( by linarith ) ( by linarith [ hy.1, hy.2 ] ), Real.log_mul ( by linarith ) ( by linarith [ hy.1, hy.2 ] ) ] ; ring;
   have h_def3 : ∀ᶠ y in nhds x, h_entropy 1 y = -y * Real.log y - (1 - y) * Real.log (1 - y) := by
     filter_upwards [ Ioo_mem_nhds hx hx1 ] with y hy using by unfold h_entropy; norm_num;
@@ -73,21 +73,21 @@ theorem hasDerivAt_Phi (r θ x : ℝ) (hx : 0 < x) (hxθ : x < θ) (hx1 : x < 1)
   have h_def5 : ∀ᶠ y in nhds x, h_entropy (r * y / θ) (r * y) - h_entropy r (r * y) = y * h_entropy (r / θ) r + r * y * Real.log y + r * (1 - y) * Real.log (1 - y) := by
     filter_upwards [ h_def, h_def2 ] with y hy₁ hy₂ using by linarith;
   have h_def6 : HasDerivAt (fun y => -y * Real.log y - (1 - y) * Real.log (1 - y) + θ * Real.log θ - y * Real.log y - (θ - y) * Real.log (θ - y) + y * h_entropy (r / θ) r + r * y * Real.log y + r * (1 - y) * Real.log (1 - y)) (log (1 - x) - log x + (log (θ - x) - log x) + (r / θ * log (r / θ) - r * log r - (r / θ - r) * log (r / θ - r)) + r * (log x - log (1 - x))) x := by
-    convert HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( hasDerivAt_binEntropy x hx hx1 ) ( hasDerivAt_const _ _ ) ) ( hasDerivAt_h_entropy_second θ x hx hxθ ) ) ( hasDerivAt_id' x |> HasDerivAt.mul_const <| h_entropy ( r / θ ) r ) ) ( hasDerivAt_neg_entropy_scaled r x hx hx1 ) ) ( hasDerivAt_const _ _ ) ) ( hasDerivAt_const _ _ ) ) ( hasDerivAt_const _ _ ) using 1 ; ring;
+    convert HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( HasDerivAt.add ( hasDerivAt_binEntropy x hx hx1 ) ( hasDerivAt_const _ _ ) ) ( hasDerivAt_h_entropy_second θ x hx hxθ ) ) ( hasDerivAt_id' x |> HasDerivAt.mul_const <| h_entropy ( r / θ ) r ) ) ( hasDerivAt_neg_entropy_scaled r x hx hx1 ) ) ( hasDerivAt_const _ _ ) ) ( hasDerivAt_const _ _ ) ) ( hasDerivAt_const _ _ ) using 1 ; ring_nf;
     rotate_left;
     rotate_left;
     exact 0;
     exact 0;
     exact 0;
     exact 0;
-    · ext; norm_num; ring;
+    · ext; norm_num; ring_nf;
     · unfold h_entropy; ring;
   refine' h_def6.congr_of_eventuallyEq _;
   filter_upwards [ h_def, h_def2, h_def3, h_def4, h_def5 ] with y hy1 hy2 hy3 hy4 hy5 using by linarith;
 
 /-- The second derivative of Phi equals `Phi'' r θ x`. -/
 theorem hasDerivAt_Phi_second (r θ x : ℝ) (hx : 0 < x) (hxθ : x < θ) (hx1 : x < 1)
-    (hθ0 : 0 < θ) (hr : 2 < r) :
+    (_hθ0 : 0 < θ) (_hr : 2 < r) :
     HasDerivAt (fun x =>
       (Real.log (1 - x) - Real.log x) + (Real.log (θ - x) - Real.log x)
       + (r / θ * Real.log (r / θ) - r * Real.log r - (r / θ - r) * Real.log (r / θ - r))

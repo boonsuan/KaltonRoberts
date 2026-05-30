@@ -28,6 +28,7 @@ private lemma sum_prod_eq_pow {J : Type*} [DecidableEq J] [Fintype J]
 
 /-! ## Two-set deficit intersection inequality -/
 
+omit [Fintype U] in
 /-- Deficit of an intersection is at most the sum of deficits plus 2. -/
 theorem deficit_inter_le (f : Finset U → ℝ) (hf : IsApproxAdditive f 1)
     (M : ℝ) (hM : ∀ S : Finset U, |f S| ≤ M)
@@ -97,7 +98,7 @@ lemma WeightedCollection.productInter_avgDeficit
     (C : WeightedCollection U) (ℓ : ℕ) (hℓ : 1 ≤ ℓ)
     (f : Finset U → ℝ) (hf : IsApproxAdditive f 1)
     (M : ℝ) (hM : ∀ S : Finset U, |f S| ≤ M)
-    (D : ℝ) (hD : 0 ≤ D) (hdeficit : C.avgDeficit f M ≤ D) :
+    (D : ℝ) (_hD : 0 ≤ D) (hdeficit : C.avgDeficit f M ≤ D) :
     (C.productInter ℓ hℓ).avgDeficit f M ≤
       ℓ * D + 2 * ((ℓ : ℝ) - 1) := by
   refine' le_trans _ ( add_le_add ( mul_le_mul_of_nonneg_left hdeficit ( Nat.cast_nonneg _ ) ) le_rfl );
@@ -112,7 +113,7 @@ lemma WeightedCollection.productInter_avgDeficit
       intro k
       have h_prod : (∑ x : Fin ℓ → C.J, (∏ j, C.weight (x j)) * deficit f M (C.sets (x k))) = (∏ j : Fin ℓ, (∑ x : C.J, C.weight x * (if j = k then deficit f M (C.sets x) else 1))) := by
         simp +decide only [prod_sum];
-        refine' Finset.sum_bij ( fun x _ => fun i _ => x i ) _ _ _ _ <;> simp +decide [ Finset.prod_mul_distrib ];
+        refine' Finset.sum_bij ( fun x _ => fun i _ => x i ) _ _ _ _ <;> simp +decide;
         · simp +decide [ funext_iff ];
         · exact fun b => ⟨ fun i => b i ( Finset.mem_univ i ), funext fun i => funext fun _ => rfl ⟩;
         · simp +decide [ Finset.prod_ite, Finset.filter_eq', Finset.filter_ne' ];
@@ -123,7 +124,7 @@ lemma WeightedCollection.productInter_avgDeficit
     · rw [ Finset.sum_comm, Finset.sum_congr rfl fun _ _ => Finset.mul_sum _ _ _ ];
     · simp +decide [ mul_assoc, Finset.mul_sum _ _ _ ];
   have h_prod : (∑ x : Fin ℓ → C.J, (∏ k, C.weight (x k)) * (2 * (ℓ - 1))) = 2 * (ℓ - 1) * C.totalWeight ^ ℓ := by
-    rw [ ← Finset.sum_mul _ _ _, sum_prod_eq_pow ] ; ring;
+    rw [ ← Finset.sum_mul _ _ _, sum_prod_eq_pow ] ; ring_nf;
     rw [ show C.totalWeight = ∑ j : C.J, C.weight j from rfl ] ; ring;
   have h_prod : (∑ x : Fin ℓ → C.J, (∏ k, C.weight (x k)) * (∑ k, deficit f M (C.sets (x k)) + 2 * (ℓ - 1))) = ℓ * C.totalWeight ^ (ℓ - 1) * (∑ j : C.J, C.weight j * deficit f M (C.sets j)) + 2 * (ℓ - 1) * C.totalWeight ^ ℓ := by
     simp_all +decide [ mul_add, Finset.sum_add_distrib ];
@@ -147,7 +148,7 @@ The total weight becomes TW^(2ℓ+1).
 product intersections, with balanced weights so that frequency bounds work
 correctly for unnormalized collections. -/
 noncomputable def WeightedCollection.mixedInter
-    (C : WeightedCollection U) (ℓ : ℕ) (hℓ : 1 ≤ ℓ) (τ : ℝ)
+    (C : WeightedCollection U) (ℓ : ℕ) (_hℓ : 1 ≤ ℓ) (τ : ℝ)
     (hτ : 0 ≤ τ) (hτ1 : τ ≤ 1) :
     WeightedCollection U where
   J := (Fin ℓ → C.J) ⊕ (Fin (ℓ + 1) → C.J)
@@ -195,7 +196,7 @@ Item frequency of the mixed collection.
 lemma WeightedCollection.mixedInter_itemFreq_le
     (C : WeightedCollection U) (ℓ : ℕ) (hℓ : 1 ≤ ℓ) (τ : ℝ)
     (hτ : 0 ≤ τ) (hτ1 : τ ≤ 1)
-    (t : ℝ) (ht : 0 ≤ t) (ht1 : t ≤ 1)
+    (t : ℝ) (_ht : 0 ≤ t) (_ht1 : t ≤ 1)
     (hfreq : ∀ i : U, C.itemFreq i ≤ t) (i : U) :
     (C.mixedInter ℓ hℓ τ hτ hτ1).itemFreq i ≤
       (1 - τ) * t ^ ℓ + τ * t ^ (ℓ + 1) := by
@@ -217,9 +218,9 @@ lemma WeightedCollection.mixedInter_itemFreq_le
     exact ⟨ h_mixed_freq ℓ hℓ, h_mixed_freq ( ℓ + 1 ) ( Nat.le_succ_of_le hℓ ) ⟩;
   convert add_le_add ( mul_le_mul_of_nonneg_left h_mixed_freq.1 ( show 0 ≤ ( 1 - τ ) * ( ∑ j : C.J, C.weight j ) ^ ( ℓ + 1 ) by exact mul_nonneg ( sub_nonneg.2 hτ1 ) ( pow_nonneg ( Finset.sum_nonneg fun _ _ => C.weight_nonneg _ ) _ ) ) ) ( mul_le_mul_of_nonneg_left h_mixed_freq.2 ( show 0 ≤ τ * ( ∑ j : C.J, C.weight j ) ^ ℓ by exact mul_nonneg hτ ( pow_nonneg ( Finset.sum_nonneg fun _ _ => C.weight_nonneg _ ) _ ) ) ) using 1;
   · convert Fintype.sum_sum_type ( fun x => ( C.mixedInter ℓ hℓ τ hτ hτ1 ).weight x * if i ∈ ( C.mixedInter ℓ hℓ τ hτ hτ1 ).sets x then 1 else 0 ) using 1;
-    simp +decide [ WeightedCollection.mixedInter, Finset.sum_mul _ _ _ ];
-    simp +decide [ Finset.sum_ite, mul_assoc, mul_comm, mul_left_comm, Finset.mul_sum _ _ _, Finset.sum_mul _ _ _, WeightedCollection.totalWeight ];
-  · rw [ WeightedCollection.mixedInter_totalWeight ] ; ring;
+    simp +decide [ WeightedCollection.mixedInter ];
+    simp +decide [ Finset.sum_ite, mul_assoc, mul_comm, Finset.mul_sum _ _ _, WeightedCollection.totalWeight ];
+  · rw [ WeightedCollection.mixedInter_totalWeight ] ; ring_nf;
     rfl
 
 /-
@@ -237,7 +238,7 @@ lemma WeightedCollection.mixedInter_avgDeficit_le
   rw [ Fintype.sum_sum_type, div_le_iff₀ ];
   · have h_left : (∑ x : Fin ℓ → C.J, (∏ k : Fin ℓ, C.weight (x k)) * deficit f M (finsetInter (fun k => C.sets (x k)))) ≤ C.totalWeight ^ ℓ * (ℓ * D + 2 * (ℓ - 1)) := by
       convert mul_le_mul_of_nonneg_left ( WeightedCollection.productInter_avgDeficit C ℓ hℓ f hf M hM D hD hdeficit ) ( show 0 ≤ C.totalWeight ^ ℓ by exact pow_nonneg C.totalWeight_pos.le _ ) using 1;
-      unfold WeightedCollection.avgDeficit; simp +decide [ mul_comm, mul_assoc, mul_left_comm, Finset.mul_sum _ _ _, Finset.sum_mul, WeightedCollection.productInter_totalWeight ] ;
+      unfold WeightedCollection.avgDeficit; simp +decide [ mul_comm, WeightedCollection.productInter_totalWeight ] ;
       rw [ mul_div_cancel₀ _ ( pow_ne_zero _ C.totalWeight_pos.ne' ) ] ; rfl;
     have h_right : (∑ x : Fin (ℓ + 1) → C.J, (∏ k : Fin (ℓ + 1), C.weight (x k)) * deficit f M (finsetInter (fun k => C.sets (x k)))) ≤ C.totalWeight ^ (ℓ + 1) * ((ℓ + 1) * D + 2 * ℓ) := by
       have := WeightedCollection.productInter_avgDeficit C ( ℓ + 1 ) ( by linarith ) f hf M hM D hD hdeficit;

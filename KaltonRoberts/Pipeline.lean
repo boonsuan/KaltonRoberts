@@ -91,12 +91,13 @@ theorem expander_E₄ : StrongExpandersExist (329 / 1250) 5 (5 / 11) :=
 
 /-! ## Normalization helpers -/
 
+omit [Fintype U] in
 lemma IsApproxAdditive_sub_additive
     (f : Finset U → ℝ) (hf : IsApproxAdditive f 1) (a : U → ℝ) :
     IsApproxAdditive (fun S => f S - additiveFunction a S) 1 := by
   refine' ⟨ _, fun A B hAB => _ ⟩
   · simp +decide [ hf.1, additiveFunction ]
-  · convert hf.2 A B hAB using 1 ; simp +decide [ additiveFunction, Finset.sum_union hAB ] ; ring
+  · convert hf.2 A B hAB using 1 ; simp +decide [ additiveFunction, Finset.sum_union hAB ] ; ring_nf
 
 lemma distToAdditive_sub_additive
     (f : Finset U → ℝ) (a : U → ℝ) :
@@ -166,7 +167,7 @@ lemma distToAdditive_neg (f : Finset U → ℝ) :
 Helper: the best-approximation property from distToAdditive.
 -/
 lemma best_approx_property (g : Finset U → ℝ) (M : ℝ)
-    (hM_bound : ∀ S : Finset U, |g S| ≤ M)
+    (_hM_bound : ∀ S : Finset U, |g S| ≤ M)
     (hM_eq : distToAdditive g = M) :
     ∀ a : U → ℝ, ∃ S : Finset U,
       |g S - additiveFunction a S| ≥ M := by
@@ -195,7 +196,7 @@ which means lam(∅) has norm 1, forcing g(∅) = ±M = 0, contradiction.
 lemma cert_posMass_pos
     {g : Finset U → ℝ} {M : ℝ} (cert : DualCertificate g M)
     (hg : IsApproxAdditive g 1) (hM : 0 < M)
-    (hM_bound : ∀ S : Finset U, |g S| ≤ M) :
+    (_hM_bound : ∀ S : Finset U, |g S| ≤ M) :
     0 < cert.posMass := by
       -- If posMass = 0, then all lam(S) ≤ 0. By zero_marginals, for each i: ∑_{S∋i} lam(S) = 0, with all terms ≤ 0, so each term is 0. So lam(S) = 0 for all nonempty S. Then ∑|lam| = |lam(∅)| = 1. Since all lam ≤ 0, lam(∅) ≤ 0, so lam(∅) = -1 < 0. By neg_support, g(∅) = -M. But g(∅) = 0 (by hg.1), so M = 0, contradicting hM.
       by_contra h_neg
@@ -208,9 +209,15 @@ lemma cert_posMass_pos
           intros i S hiS
           have h_sum_zero_i : ∑ S ∈ Finset.univ.filter (fun S => i ∈ S), cert.lam S = 0 := h_sum_zero i
           have h_lam_zero_i : ∀ S ∈ Finset.univ.filter (fun S => i ∈ S), cert.lam S = 0 := by
-            exact fun S hS => le_antisymm ( h_all_nonpos S ) ( by simpa [ h_sum_zero_i ] using Finset.single_le_sum ( fun x _ => neg_nonneg.mpr ( h_all_nonpos x ) ) hS ) |> fun h => by simpa [ h ] ;
+            intro T hT
+            have hsingle :
+                -cert.lam T ≤ ∑ S ∈ Finset.univ.filter (fun S => i ∈ S), -cert.lam S :=
+              Finset.single_le_sum (fun x _ => neg_nonneg.mpr (h_all_nonpos x)) hT
+            have hle : -cert.lam T ≤ 0 := by
+              simpa [Finset.sum_neg_distrib, h_sum_zero_i] using hsingle
+            exact le_antisymm (h_all_nonpos T) (neg_nonpos.mp hle)
           exact h_lam_zero_i S (Finset.mem_filter.mpr ⟨Finset.mem_univ S, hiS⟩);
-        rw [ Finset.sum_eq_single ∅ ] <;> simp +contextual [ h_lam_zero ];
+        rw [ Finset.sum_eq_single ∅ ] <;> simp +contextual;
         exact fun S hS => h_lam_zero _ _ ( Classical.choose_spec ( Finset.nonempty_of_ne_empty hS ) )
       have h_lam_empty : cert.lam ∅ = -1 := by
         have := cert.norm_one; simp_all +decide [ abs_of_nonpos ] ;
@@ -248,21 +255,21 @@ lemma g_univ_le_one
         -- By assumption, there exist negative active sets.
         have h_neg_active : ∃ N : Finset U, cert.lam N < 0 := by
           contrapose! hM;
-          have := cert.norm_one; simp_all +decide [ Finset.sum_nonneg, abs_of_nonneg ] ;
+          have := cert.norm_one; simp_all +decide [ abs_of_nonneg ] ;
           -- Since $N$ is a negative active set, we have $g(N) = -M$.
           have h_neg_active : ∀ i : U, ∑ S ∈ Finset.univ.filter (fun S => i ∈ S), cert.lam S = 0 := by
             exact fun i => cert.zero_marginals i;
           -- Since $N$ is a negative active set, we have $g(N) = -M$. Therefore, $M \leq 0$.
           have h_neg_active : ∀ S : Finset U, S.Nonempty → cert.lam S = 0 := by
             intro S hS_nonempty; obtain ⟨ i, hi ⟩ := hS_nonempty; specialize h_neg_active i; rw [ Finset.sum_eq_zero_iff_of_nonneg ] at h_neg_active <;> aesop;
-          rw [ Finset.sum_eq_single ∅ ] at this <;> simp_all +decide [ Finset.sum_nonneg, abs_of_nonneg ];
-          · have := cert.pos_support ∅; simp_all +decide [ Finset.sum_nonneg, abs_of_nonneg ] ;
+          rw [ Finset.sum_eq_single ∅ ] at this <;> simp_all +decide;
+          · have := cert.pos_support ∅; simp_all +decide ;
             linarith [ abs_le.mp ( hM_bound ∅ ), hg.1 ];
           · exact fun S hS => h_neg_active S ( Finset.nonempty_of_ne_empty hS );
         exact h_neg_active.imp fun N hN => by linarith [ cert.neg_support N hN ] ;
       -- By assumption, $|g(N) + g(Nᶜ) - g(\text{univ})| \leq 1$ and $|g(P) + g(Pᶜ) - g(\text{univ})| \leq 1$.
       have h_bound_N : |g N + g Nᶜ - g univ| ≤ 1 := by
-        convert hg.2 N Nᶜ ( disjoint_compl_right ) using 1 ; simp +decide [ Finset.union_comm ]
+        convert hg.2 N Nᶜ ( disjoint_compl_right ) using 1 ; simp +decide
       have h_bound_P : |g P + g Pᶜ - g univ| ≤ 1 := by
         convert hg.2 P Pᶜ ( disjoint_compl_right ) using 1 ; aesop;
       exact abs_le.mpr ⟨ by linarith [ abs_le.mp h_bound_N, abs_le.mp h_bound_P, abs_le.mp ( hM_bound N ), abs_le.mp ( hM_bound Nᶜ ), abs_le.mp ( hM_bound P ), abs_le.mp ( hM_bound Pᶜ ) ], by linarith [ abs_le.mp h_bound_N, abs_le.mp h_bound_P, abs_le.mp ( hM_bound N ), abs_le.mp ( hM_bound Nᶜ ), abs_le.mp ( hM_bound P ), abs_le.mp ( hM_bound Pᶜ ) ] ⟩

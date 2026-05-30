@@ -29,7 +29,7 @@ theorem exists_uniform_labeling (n m : ℕ) (hn : 0 < n) (hm : 0 < m) (hdvd : m 
       Function.Surjective f ∧
       ∀ j : Fin m, (Finset.univ.filter (fun i => f i = j)).card = n / m := by
   refine' ⟨ fun i => ⟨ i.val % m, Nat.mod_lt _ hm ⟩, _, _ ⟩ <;> intro j <;>
-    simp_all +decide [ Function.Surjective ];
+    simp_all +decide;
   · exact ⟨ ⟨ j, by linarith [ Fin.is_lt j, Nat.le_of_dvd hn hdvd ] ⟩,
       Fin.ext <| Nat.mod_eq_of_lt j.2 ⟩;
   · rw [ Finset.card_eq_of_bijective ];
@@ -58,9 +58,9 @@ theorem exists_uniform_labeling_types
   have h_equiv : Nonempty (A ≃ Fin (Fintype.card A)) ∧ Nonempty (B ≃ Fin (Fintype.card B)) := by
     exact ⟨ ⟨ Fintype.equivFin A ⟩, ⟨ Fintype.equivFin B ⟩ ⟩;
   obtain ⟨ ⟨ eA ⟩, ⟨ eB ⟩ ⟩ := h_equiv;
-  refine' ⟨ fun a => eB.symm ( f ( eA a ) ), _, _ ⟩ <;> simp_all +decide [ Function.Surjective ];
+  refine' ⟨ fun a => eB.symm ( f ( eA a ) ), ?_, ?_ ⟩
   · exact fun b => by obtain ⟨ a, ha ⟩ := hf.1 ( eB b ) ; exact ⟨ eA.symm a, by simp +decide [ ha ] ⟩ ;
-  · intro j; specialize hf; have := hf.2 ( eB j ) ; simp_all +decide [ Finset.card_image_of_injective, Function.Injective ] ;
+  · intro j
     convert hf.2 ( eB j ) using 1;
     rw [ Finset.card_filter, Finset.card_filter ];
     refine' Finset.sum_bij ( fun i _ => eA i ) _ _ _ _ <;> simp +decide [ eB.symm_apply_eq ];
@@ -82,6 +82,7 @@ theorem exists_large_admissible_multiple (step d : ℕ) (hstep : 0 < step) (hd :
 /-
 Source count after uniform duplication via an arbitrary labeling.
 -/
+omit [Fintype U] in
 lemma uniform_duplication_source_count'
     {A B : Type*} [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B]
     (lab : A → B)
@@ -109,8 +110,8 @@ lemma uniform_duplication_sum
       (Fintype.card A / Fintype.card B : ℕ) * ∑ j : B, g j := by
   -- Apply the lemma that rewrites the sum as a sum over the fibers.
   have h_sum_fiber : ∑ v : A, g (lab v) = ∑ j : B, ∑ v ∈ Finset.univ.filter (fun v => lab v = j), g j := by
-    exact?;
-  simp_all +decide [ Finset.sum_filter ];
+    exact Eq.symm (sum_fiberwise' univ lab g)
+  simp_all +decide;
   rw [ Finset.mul_sum _ _ _ ]
 
 /-! ## Ratio lemma -/
@@ -125,11 +126,12 @@ lemma expander_ratio_eq_theta
     (hV : Fintype.card V = 2 * k)
     (hW : (Fintype.card W : ℚ) = 2 * θ * ↑k) :
     (Fintype.card W : ℝ) / (Fintype.card V : ℝ) = (θ : ℝ) := by
-  rw [ div_eq_iff ] <;> norm_cast at * <;> simp_all +decide [ mul_assoc, mul_comm, mul_left_comm ];
+  rw [ div_eq_iff ] <;> norm_cast at * <;> simp_all +decide [ mul_comm, mul_left_comm ];
   linarith
 
 /-! ## Finite-uniform one-sided recombination -/
 
+omit [Fintype U] in
 /-
 **Lemma 3.2** (One-sided recombination, finite-uniform version).
 -/
@@ -137,7 +139,7 @@ theorem one_sided_recombination_uniform_core
     (f : Finset U → ℝ) (hf : IsApproxAdditive f 1) (M : ℝ)
     (hM : ∀ S : Finset U, |f S| ≤ M)
     (α_val : ℚ) (r_val : ℕ) (θ_val : ℚ)
-    (hθ : 0 < (θ_val : ℝ)) (hθ1 : (θ_val : ℝ) < 1)
+    (hθ : 0 < (θ_val : ℝ)) (_hθ1 : (θ_val : ℝ) < 1)
     (hexp : StrongExpandersExist α_val r_val θ_val)
     (hr : 0 < r_val)
     {I : Type*} [Fintype I] [DecidableEq I]
@@ -185,8 +187,8 @@ theorem one_sided_recombination_uniform_core
     specialize hfreq i
     have hsource_count_i : (Finset.univ.filter (fun v => i ∈ C (lab v))).card ≤ (α_val * (Fintype.card E.V : ℚ)) := by
       rw [ div_le_iff₀ ] at hfreq <;> norm_cast at *;
-      convert mul_le_mul_of_nonneg_right hfreq ( show ( 0 : ℚ ) ≤ ( Fintype.card E.V / Fintype.card I : ℚ ) by positivity ) using 1 ; push_cast [ hsource_count ] ; ring;
-      · rw [ Nat.cast_div ( by assumption ) ( by positivity ) ] ; ring;
+      convert mul_le_mul_of_nonneg_right hfreq ( show ( 0 : ℚ ) ≤ ( Fintype.card E.V / Fintype.card I : ℚ ) by positivity ) using 1 ; push_cast [ hsource_count ] ; ring_nf;
+      · rw [ Nat.cast_div ( by assumption ) ( by positivity ) ] ; ring_nf;
       · rw [ mul_assoc, mul_div_cancel₀ _ ( by positivity ) ];
     exact Nat.le_of_lt_succ ( by rw [ ← @Nat.cast_lt ℚ ] ; push_cast [ hthresh, hV_card ] at *; linarith [ Nat.le_ceil ( 2 * α_val * k ) ] )
   -- Step 8: Average deficit condition
@@ -197,7 +199,7 @@ theorem one_sided_recombination_uniform_core
     have hsum_rewrite : ∑ v : E.V, deficit f M (C' v) = (Fintype.card E.V / Fintype.card I : ℕ) * ∑ j : I, deficit f M (C j) := by
       convert uniform_duplication_sum lab hlab_fiber ( fun j => deficit f M ( C j ) ) using 1;
     rw [ hsum_rewrite, div_le_iff₀ ] at *;
-    · convert mul_le_mul_of_nonneg_left havg_def ( Nat.cast_nonneg ( Fintype.card E.V / Fintype.card I ) ) using 1 ; ring;
+    · convert mul_le_mul_of_nonneg_left havg_def ( Nat.cast_nonneg ( Fintype.card E.V / Fintype.card I ) ) using 1 ; ring_nf;
       rw [ mul_assoc, Nat.cast_div ( by tauto ) ( by positivity ), div_mul_cancel₀ _ ( by positivity ) ];
     · positivity;
     · exact Nat.cast_pos.mpr ( hV_card.symm ▸ mul_pos zero_lt_two hk_pos )
@@ -242,10 +244,10 @@ theorem one_sided_recombination_uniform_core
       refine' Finset.card_bij ( fun w hw => ⟨ w ⟩ ) _ _ _ <;> simp +decide [ T_lifted ];
     rw [ hitemFreq, div_le_div_iff₀ ] <;> norm_cast at *;
     refine' le_trans ( mul_le_mul_of_nonneg_right ( Nat.cast_le.mpr ( hT_source i ) ) ( by positivity ) ) _;
-    convert mul_le_mul_of_nonneg_right ( hfreq i ) ( show ( 0 : ℚ ) ≤ Fintype.card E.W by positivity ) using 1 ; ring;
-    rw [ hsource_count i ] ; norm_num [ Finset.dens ] ; ring;
-    rw [ Nat.cast_div ( by assumption ) ( by positivity ) ] ; ring;
-    rw [ show ( Fintype.card E.W : ℚ ) = 2 * θ_val * k by exact_mod_cast hW_card ] ; rw [ hV_card ] ; ring;
+    convert mul_le_mul_of_nonneg_right ( hfreq i ) ( show ( 0 : ℚ ) ≤ Fintype.card E.W by positivity ) using 1 ; ring_nf;
+    rw [ hsource_count i ] ; norm_num [ Finset.dens ] ; ring_nf;
+    rw [ Nat.cast_div ( by assumption ) ( by positivity ) ] ; ring_nf;
+    rw [ show ( Fintype.card E.W : ℚ ) = 2 * θ_val * k by exact_mod_cast hW_card ] ; rw [ hV_card ] ; ring_nf;
     push_cast; ring;
   · -- Target average deficit ≤ D'
     rw [WeightedCollection.uniformOfFamily_avgDeficit]

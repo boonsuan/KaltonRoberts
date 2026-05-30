@@ -70,7 +70,7 @@ theorem approx_additive_finset_partition_sum_lower
     ∑ i : Fin n, f (pieces i) ≥ f A - ((n : ℝ) - 1) := by
   -- Apply the approximation lemma to -f.
   have := approx_additive_finset_partition_upper (-f) (by
-  constructor <;> simp +decide [ hf.1, hf.2 ];
+  constructor <;> simp +decide [ hf.1 ];
   exact fun A B hAB => abs_le.mpr ⟨ by linarith [ abs_le.mp ( hf.2 A B hAB ) ], by linarith [ abs_le.mp ( hf.2 A B hAB ) ] ⟩) n hn pieces hpw A hunion
   simp at this
   linarith [hf.1, hf.2]
@@ -326,7 +326,7 @@ lemma recombination_source_target_ineq
     · exact fun x _ y _ hxy => Finset.disjoint_left.mpr fun z => by aesop;
   have h_sum_eq : ∑ w, ∑ v ∈ Finset.univ, ∑ e ∈ Finset.univ, (if edge v e = w then f (edgePiece edge C threshold hexp hfreq v e) else 0) = ∑ v, ∑ e, f (edgePiece edge C threshold hexp hfreq v e) := by
     rw [ Finset.sum_comm, Finset.sum_congr rfl ];
-    intro v hv; rw [ Finset.sum_comm ] ; simp +decide [ Finset.sum_ite ] ;
+    intro v hv; rw [ Finset.sum_comm ] ; simp +decide ;
   linarith
 
 /-! ## One-sided recombination: witness-level core -/
