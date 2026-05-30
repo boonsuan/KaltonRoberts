@@ -1,0 +1,7 @@
+.lake/
+__pycache__/
+*.py[cod]
+*.zip
+
+paper/
+VERIFICATION.md
