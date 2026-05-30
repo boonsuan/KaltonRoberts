@@ -43,6 +43,7 @@ The formalization was carried out with GPT-5.5 Pro and Harmonic Aristotle.
 - `kalton_api.py` - pure standard-library verification API.
 - `scripts/verify_halving.py` - command-line verifier.
 - `notebooks/kalton_api_demo.ipynb` - Jupyter notebook that imports `kalton_api.py` directly; no package installation is needed.
+- `notebooks/kalton_api_demo.md` - static GitHub-renderable copy of the notebook, useful if GitHub's notebook preview service is down.
 - `LICENSE` - MIT license for the repository.
 
 ## Toolchain
@@ -156,6 +157,11 @@ Open `notebooks/kalton_api_demo.ipynb`. The first cell adds the repository
 root to `sys.path` and imports `kalton_api`; it does not require `pip install`,
 editable installs, or any non-standard Python packages for the verification
 itself.
+
+If GitHub's notebook preview iframe reports `An error occurred` with
+`nbformat`/`nbconvert` versions, use `notebooks/kalton_api_demo.md` as the
+static rendered fallback. The `.ipynb` file itself validates and converts
+locally; that banner is produced by GitHub's notebook rendering service.
 
 ## License
 
