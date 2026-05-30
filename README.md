@@ -45,6 +45,15 @@ The formalization was carried out with GPT-5.5 Pro and Harmonic Aristotle.
 - `notebooks/kalton_api_demo.ipynb` - Jupyter notebook that imports `kalton_api.py` directly; no package installation is needed.
 - `LICENSE` - MIT license for the repository.
 
+## Toolchain
+
+This formalization uses Lean `v4.28.0` and mathlib `v4.28.0`.
+
+- Lean is pinned by `lean-toolchain`:
+  `leanprover/lean4:v4.28.0`.
+- mathlib is pinned in `lakefile.toml`:
+  `rev = "v4.28.0"`.
+
 ## Main Lean Result
 
 The headline theorem is in `KaltonRoberts/MainTheorem.lean`:
