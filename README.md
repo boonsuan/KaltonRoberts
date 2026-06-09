@@ -1,9 +1,9 @@
 # Halving the Kalton--Roberts upper bound
 
 This repository contains a Lean/mathlib formalization supplementing the
-forthcoming paper:
+paper "Halving the original Kalton--Roberts upper bound for nearly additive set functions" (joint work with [Tomasz Kania](https://users.math.cas.cz/~kania/)):
 
-[arXiv:2606.XXXX](https://arxiv.org/abs/2606.XXXX)
+[arXiv:2606.06807](https://arxiv.org/abs/2606.06807)
 
 The Kalton--Roberts constant is the best universal constant in the following
 stability problem for finitely additive measures. If `f` is a real-valued set
